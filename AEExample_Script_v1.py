@@ -82,7 +82,6 @@ inputmodule_paramsEnc['num_input_channels']=3
 # 1.1 Patient Diagnosis
 
 
-
 def load_cropped(folder_path, csv_path, patient_list, sample_size=200):
     # Cargar el CSV con pandas
     df = pd.read_csv(csv_path)
@@ -93,41 +92,50 @@ def load_cropped(folder_path, csv_path, patient_list, sample_size=200):
     # Inicializar la estructura de datos para almacenar los datos de los pacientes seleccionados
     patients_data = []
     
-    # Iterar sobre cada paciente en la lista dada
+    # Iterar sobre cada paciente en la lista de IDs proporcionada
     for patient_id in patient_list:
-        # Revisar si el paciente está en el diccionario de metadatos
-        if patient_id in patient_metadata:
-            # Definir el path de la carpeta del paciente
-            patient_folder = os.path.join(folder_path, patient_id)
+        # Buscar la carpeta correspondiente en el directorio Cropped con el formato <ID>_*
+        patient_folder_pattern = os.path.join(folder_path, f"{patient_id}_*")
+        patient_folders = glob.glob(patient_folder_pattern)
+        
+        # Si existe alguna carpeta que coincide con el patrón <ID>_*
+        if patient_folders:
+            # Tomar la primera coincidencia (suponiendo que hay solo una carpeta por paciente)
+            patient_folder = patient_folders[0]
             
-            # Obtener todas las imágenes .png dentro de la carpeta del paciente
-            images = glob.glob(os.path.join(patient_folder, "*.png"))
-            
-            # Si el paciente tiene imágenes en su carpeta
-            if images:
-                # Mezclar la lista de imágenes
-                random.shuffle(images)
+            # Verificar que el paciente esté en el CSV
+            if patient_id in patient_metadata:
+                # Obtener todas las imágenes .png dentro de la carpeta del paciente
+                images = glob.glob(os.path.join(patient_folder, "*.png"))
                 
-                # Seleccionar una muestra de tamaño sample_size o menos si hay menos imágenes
-                images_sample = random.sample(images, min(sample_size, len(images)))
-                
-                # Crear la entrada para el paciente con sus imágenes y metadatos
-                patient_data = {
-                    'patient_id': patient_id,
-                    'densitat': patient_metadata[patient_id],
-                    'images': images_sample
-                }
-                
-                # Añadir la información del paciente a la lista de datos de pacientes
-                patients_data.append(patient_data)
+                # Si el paciente tiene imágenes en su carpeta
+                if images:
+                    # Mezclar la lista de imágenes
+                    random.shuffle(images)
+                    
+                    # Seleccionar una muestra de tamaño sample_size o menos si hay menos imágenes
+                    images_sample = random.sample(images, min(sample_size, len(images)))
+
+                    # Binariar densidad
+                    if patient_metadata[patient_id] == "NEGATIVA":
+                        dens = 0
+                    else:
+                        dens = 1
+                    
+                    # Crear la entrada para el paciente con sus imágenes y metadatos
+                    patient_data = {
+                        'patient_id': patient_id,
+                        'densitat': dens,
+                        'images': images_sample
+                    }
+                    
+                    # Añadir la información del paciente a la lista de datos de pacientes
+                    patients_data.append(patient_data)
     
     return patients_data
 
-# Ejemplo de uso
-folder_path = "Cropped/"
-csv_path = "PatientDiagnosis.csv"
-patient_list = ["12345", "67890"]  # Lista de IDs de pacientes específicos
-patients_data = load_cropped(folder_path, csv_path, patient_list)
+folder_path_cropped_sample = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/Cropped_sample"
+csv_path_patintdiagnosis = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/PatientDiagnosis.csv"
 
 # Imprimir un ejemplo de la estructura de datos
 print(patients_data[:1])  # Muestra el primer paciente como ejemplo
