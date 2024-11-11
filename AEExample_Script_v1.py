@@ -32,7 +32,8 @@ import torch
 
 
 ## Own Functions
-from Models.AEmodels import AutoEncoderCNN
+from AutoEncoder.Models.AEmodels import AutoEncoderCNN
+from AutoEncoder.Models.datasets import Standard_Dataset, Paired_Dataset
 
 
 def AEConfigs(Config):
