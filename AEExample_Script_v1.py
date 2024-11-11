@@ -139,7 +139,41 @@ print(patients_data[:1])  # Muestra el primer paciente como ejemplo
 #### 2. DATA SPLITING INTO INDEPENDENT SETS
 
 # 2.0 Annotated set for FRed optimal threshold
+patient_health_status = {}
+def load_annotated(patient_id, image1, image2, adaptive_threshold=True):
+    """
+    Compara dos imágenes de un paciente usando MSE para determinar si está sano o no,
+    basado en un umbral adaptativo entre las imágenes.
 
+    Parameters:
+    - patient_id: ID del paciente.
+    - image1: Primera imagen (numpy array).
+    - image2: Segunda imagen (numpy array).
+    - adaptive_threshold: Si es True, calcula un umbral adaptativo basado en MSE promedio.
+
+    Returns:
+    - None, pero actualiza el diccionario `patient_health_status` con el ID del paciente y su estado de salud.
+    """
+    # Asegurarse de que las imágenes tengan el mismo tamaño
+    if image1.shape != image2.shape:
+        raise ValueError("Las imágenes deben tener el mismo tamaño")
+    
+    # Calcular el MSE entre las dos imágenes
+    mse = np.mean((image1 - image2) ** 2)
+    
+    # Umbral adaptativo (por ejemplo, ajustar con estadísticas previas)
+    if adaptive_threshold:
+        threshold = mse * 1.2  # Umbral dinámico que se ajusta en función del MSE promedio observado
+    else:
+        threshold = 0.01  # Umbral fijo, para pruebas iniciales
+    
+    # Decidir el estado de salud del paciente según el umbral
+    is_healthy = mse < threshold
+    health_status = "sano" if is_healthy else "no sano"
+    
+    # Almacenar el resultado en el diccionario
+    patient_health_status[patient_id] = health_status
+    print(f"Paciente {patient_id}: {health_status} (MSE: {mse}, Umbral: {threshold})")
 # 2.1 AE trainnig set
 
 # 2.1 Diagosis crossvalidation set
