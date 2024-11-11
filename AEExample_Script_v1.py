@@ -76,13 +76,10 @@ inputmodule_paramsEnc['num_input_channels']=3
 # 0.1 NETWORK TRAINING PARAMS
 
 # 0.2 FOLDERS
-
-
-
+folder_path_cropped_sample = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/Cropped_sample"
+csv_path_patintdiagnosis = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/PatientDiagnosis.csv"
 #### 1. LOAD DATA
 # 1.1 Patient Diagnosis
-
-
 def load_cropped(folder_path, csv_path, patient_list, sample_size=200):
     # Cargar el CSV con pandas
     df = pd.read_csv(csv_path)
@@ -134,15 +131,6 @@ def load_cropped(folder_path, csv_path, patient_list, sample_size=200):
                     patients_data.append(patient_data)
     
     return patients_data
-
-folder_path_cropped_sample = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/Cropped_sample"
-csv_path_patintdiagnosis = "C:/Users/mirvi/Desktop/mii/UAB/4.1/PSIV2/detect mateicules/repte3/psiv-repte3/data/PatientDiagnosis.csv"
-
-# Imprimir un ejemplo de la estructura de datos
-print(patients_data[:1])  # Muestra el primer paciente como ejemplo
-
-
-
 # 1.2 Patches Data
 
 #### 2. DATA SPLITING INTO INDEPENDENT SETS
@@ -183,10 +171,39 @@ def load_annotated(patient_id, image1, image2, adaptive_threshold=True):
     # Almacenar el resultado en el diccionario
     patient_health_status[patient_id] = health_status
     print(f"Paciente {patient_id}: {health_status} (MSE: {mse}, Umbral: {threshold})")
-# 2.1 AE trainnig set
+# 2.1 AE trainnig set y Diagosis crossvalidation set
+def create_training_set_kfold(folder_path, csv_path, k=10, sample_size=200):
+    # Cargar la lista de IDs de pacientes del CSV
+    df = pd.read_csv(csv_path)
+    patient_list = df['CODI'].unique().tolist()
+    
+    # Cargar los datos usando la función load_cropped
+    patients_data = load_cropped(folder_path, csv_path, patient_list, sample_size)
+    
+    # Preparar el KFold para dividir los datos
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    
+    for fold, (train_index, val_index) in enumerate(kf.split(patients_data)):
+        # Crear conjuntos de entrenamiento y validación
+        train_data = [patients_data[i] for i in train_index]
+        val_data = [patients_data[i] for i in val_index]
+        
+        # Crear DataLoaders para entrenamiento y validación
+        train_loader = DataLoader(TrainingDataset(train_data), batch_size=32, shuffle=True)
+        val_loader = DataLoader(TrainingDataset(val_data), batch_size=32, shuffle=False)
 
-# 2.1 Diagosis crossvalidation set
-
+class TrainingDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        item = self.data[idx]
+        images = [torch.tensor(np.array(image), dtype=torch.float32).permute(2, 0, 1) for image in item['images']]
+        return torch.stack(images), item['densitat']
+    
 #### 3. lOAD PATCHES
 
 ### 4. AE TRAINING
